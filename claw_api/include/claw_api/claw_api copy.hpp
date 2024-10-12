@@ -1,6 +1,3 @@
-#ifndef CLAW_API_HPP
-#define CLAW_API_HPP
-
 #include <iostream>
 #include <libserial/SerialStream.h>
 #include <cstdint>
@@ -21,34 +18,20 @@
 #define MAXRETRY 3
 #define TIMEOUT 1000 // Milliseconds
 
-class TRoboClawException : public std::exception {
-public:
-    explicit TRoboClawException(const char* message) : msg_(message) {}
-    virtual const char* what() const noexcept override { return msg_; }
-private:
-    const char* msg_;
-};
-
 class RoboClaw {
 public:
-    explicit RoboClaw(const std::string& device_name) : port_(device_name) {}
+    RoboClaw(const std::string& device_name) : port_(device_name), crc(0) {}
 
     void openPort() {
-        std::cout << "[RoboClaw::openPort] about to open port: " << port_ << std::endl;
         serialStream_.Open(port_);
         if (!serialStream_.IsOpen()) {
-            throw TRoboClawException("Unable to open USB port");
+            throw std::runtime_error("Unable to open USB port");
         }
         serialStream_.SetBaudRate(LibSerial::BaudRate::BAUD_9600);
         serialStream_.SetCharacterSize(LibSerial::CharacterSize::CHAR_SIZE_8);
         serialStream_.SetParity(LibSerial::Parity::PARITY_NONE);
         serialStream_.SetStopBits(LibSerial::StopBits::STOP_BITS_1);
     }
-
-    bool isPortOpen() {  // Removed 'const' to allow method to access non-const members
-        return serialStream_.IsOpen();
-    }
-
 
     void closePort() {
         if (serialStream_.IsOpen()) {
@@ -91,7 +74,6 @@ public:
     ~RoboClaw() {
         closePort();
     }
-
 
 private:
     std::string port_;
@@ -158,12 +140,10 @@ private:
             // Check for timeout
             auto elapsed = std::chrono::steady_clock::now() - start_time;
             if (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() >= timeout_ms) {
-                throw TRoboClawException("Read timeout");
+                throw std::runtime_error("Read timeout");
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Small delay to prevent busy waiting
         }
     }
 };
-
-#endif // CLAW_API_HPP
