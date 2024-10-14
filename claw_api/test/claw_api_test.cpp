@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include "claw_api.hpp"
+#include "claw_api/claw_api.hpp"
 #include <thread>
 #include <chrono>
 
-RoboClaw roboClaw("/dev/ttyACM0");
+RoboClaw roboClaw;
 
 
 
@@ -11,7 +11,7 @@ RoboClaw roboClaw("/dev/ttyACM0");
 TEST(claw_api_test, OpenConnection) {
 
     // Attempt to open the port and expect no exceptions
-    ASSERT_NO_THROW(roboClaw.openPort());
+    ASSERT_NO_THROW(roboClaw.openPort("/dev/ttyACM0"));
     
 }
 

@@ -27,8 +27,8 @@
 
 class RoboClaw {
 public:
-    RoboClaw(const std::string& device_name);
-    void openPort();
+    RoboClaw();
+    void openPort(const std::string& device_name);
     void closePort();
     bool isPortOpen();
     bool ForwardM1(uint8_t address, uint8_t speed);

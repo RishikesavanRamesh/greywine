@@ -10,7 +10,6 @@ endif()
 
 
 find_package(ament_cmake REQUIRED)
-find_package(claw_api REQUIRED)
 
 # let the compiler search for headers in the include folder
 include_directories(include)
@@ -45,10 +44,11 @@ install(
 
 if(BUILD_TESTING)
 find_package(ament_cmake_gtest REQUIRED)
-  
-  ament_add_gtest(claw_api_test test/claw_api_test.cpp)
+  ament_add_gtest(claw_api_test 
+  test/claw_api_test.cpp
+  $<TARGET_OBJECTS:claw_api>
+  )
 
-  target_link_libraries(claw_api_test claw_api)
   
   target_link_libraries(claw_api_test  serial)
   

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROBOCLAW_HARDWARE__ROS2_CLAW_HPP_
-#define ROBOCLAW_HARDWARE__ROS2_CLAW_HPP_
+#ifndef ROBOCLAW_HARDWARE_ROS2_CLAW_HPP_
+#define ROBOCLAW_HARDWARE_ROS2_CLAW_HPP_
 
 #include <string>
 #include <vector>
@@ -27,10 +27,26 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
+#include "roboclaw_hardware/roboclaw_comms.hpp"
+#include "roboclaw_hardware/wheel.hpp"
+
 namespace roboclaw_hardware
 {
 class Ros2Claw : public hardware_interface::SystemInterface
 {
+
+
+struct Config
+{
+  std::string wheel_left_name = "";
+  std::string wheel_right_name = "";
+  float loop_rate = 0.0;
+  std::string device = "";
+  int baud_rate = 0;
+  int timeout_ms = 0;
+  int enc_counts_per_rev = 0;
+};
+
 public:
   TEMPLATES__ROS2_CONTROL__VISIBILITY_PUBLIC
   hardware_interface::CallbackReturn on_init(
@@ -63,8 +79,10 @@ public:
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  std::vector<double> hw_commands_;
-  std::vector<double> hw_states_;
+    RoboClawComms comms_;
+    Config cfg_;
+    Wheel wheel_left_;
+    Wheel wheel_right_;
 };
 
 }  // namespace roboclaw_hardware

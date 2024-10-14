@@ -1,8 +1,9 @@
 #include "claw_api/claw_api.hpp"
 
-RoboClaw::RoboClaw(const std::string& device_name) : port_(device_name), crc(0) {}
+RoboClaw::RoboClaw() : crc(0) {}
 
-void RoboClaw::openPort() {
+void RoboClaw::openPort(const std::string& device_name) {
+    port_ = device_name;
     serialStream_.Open(port_);
     if (!serialStream_.IsOpen()) {
         throw std::runtime_error("Unable to open USB port");
