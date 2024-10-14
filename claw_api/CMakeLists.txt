@@ -10,29 +10,38 @@ endif()
 
 
 find_package(ament_cmake REQUIRED)
+find_package(claw_api REQUIRED)
 
-add_library(claw_api INTERFACE)
-
-
+# let the compiler search for headers in the include folder
+include_directories(include)
+ 
+# define a library target called claw_api
+add_library(claw_api src/claw_api.cpp)
+ 
 
 target_include_directories(claw_api INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/claw_api>
   $<INSTALL_INTERFACE:include/claw_api>
 )
 
+
+# this line to exports the library
 ament_export_targets(claw_api HAS_LIBRARY_TARGET)
-
+ 
+# install the include/my_cpp_library directory to the install/include/my_cpp_library
 install(
-  DIRECTORY include/claw_api/
-  DESTINATION include/claw_api
+  DIRECTORY include/claw_api
+  DESTINATION include
 )
-
+ 
 install(
   TARGETS claw_api
   EXPORT claw_api
-  DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
-
 
 if(BUILD_TESTING)
 find_package(ament_cmake_gtest REQUIRED)

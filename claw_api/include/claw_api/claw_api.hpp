@@ -9,161 +9,54 @@
 #include <thread>
 #include <chrono>
 
-#define M1FORWARD 0x00
-#define M1BACKWARD 0x01
-#define M2FORWARD 0x04
-#define M2BACKWARD 0x05
-
-#define TURNLEFTORRIGHT 0x13
-#define DRIVEFORWARDORBACKWARD 0X12
-
+#define M1FORWARD 0
+#define M1BACKWARD 1
+#define M2FORWARD 4
+#define M2BACKWARD 5
+#define DRIVEM1 6
+#define DRIVEM2 7
+#define DRIVEFORWARD 8
+#define DRIVEBACKWARD 9
+#define TURNRIGHT 10
+#define TURNLEFT 11
+#define DRIVEFORWARDORBACKWARD 12
+#define TURNLEFTORRIGHT 13
 
 #define MAXRETRY 3
-#define TIMEOUT 1000 // Milliseconds
-
-class TRoboClawException : public std::exception {
-public:
-    explicit TRoboClawException(const char* message) : msg_(message) {}
-    virtual const char* what() const noexcept override { return msg_; }
-private:
-    const char* msg_;
-};
+#define TIMEOUT 10 // Milliseconds
 
 class RoboClaw {
 public:
-    explicit RoboClaw(const std::string& device_name) : port_(device_name) {}
-
-    void openPort() {
-        std::cout << "[RoboClaw::openPort] about to open port: " << port_ << std::endl;
-        serialStream_.Open(port_);
-        if (!serialStream_.IsOpen()) {
-            throw TRoboClawException("Unable to open USB port");
-        }
-        serialStream_.SetBaudRate(LibSerial::BaudRate::BAUD_9600);
-        serialStream_.SetCharacterSize(LibSerial::CharacterSize::CHAR_SIZE_8);
-        serialStream_.SetParity(LibSerial::Parity::PARITY_NONE);
-        serialStream_.SetStopBits(LibSerial::StopBits::STOP_BITS_1);
-    }
-
-    bool isPortOpen() {  // Removed 'const' to allow method to access non-const members
-        return serialStream_.IsOpen();
-    }
-
-
-    void closePort() {
-        if (serialStream_.IsOpen()) {
-            serialStream_.Close();
-        }
-    }
-
-    bool ForwardM1(uint8_t address, uint8_t speed) {
-        return write_n(3, address, M1FORWARD, speed);
-    }
-
-    bool BackwardM1(uint8_t address, uint8_t speed) {
-        return write_n(3, address, M1BACKWARD, speed);
-    }
-
-    bool ForwardM2(uint8_t address, uint8_t speed) {
-        return write_n(3, address, M2FORWARD, speed);
-    }
-
-    bool BackwardM2(uint8_t address, uint8_t speed) {
-        return write_n(3, address, M2BACKWARD, speed);
-    }
-
-    bool TurnLeftOrRight(uint8_t address, uint8_t speed) {
-        // Ensure speed is between 0 and 127
-        if (speed > 127) speed = 127; 
-        return write_n(3, address, TURNLEFTORRIGHT, speed);
-    }
-
-    bool DriveForwardOrBackward(uint8_t address, uint8_t speed) {
-        // Ensure speed is between 0 and 127
-        if (speed > 127) speed = 127; 
-        return write_n(3, address, DRIVEFORWARDORBACKWARD, speed);
-}
-
-    bool Stop(){
-        return write_n(3, 0x80, 0x13, 64);
-    }
-
-    ~RoboClaw() {
-        closePort();
-    }
-
+    RoboClaw(const std::string& device_name);
+    void openPort();
+    void closePort();
+    bool isPortOpen();
+    bool ForwardM1(uint8_t address, uint8_t speed);
+    bool BackwardM1(uint8_t address, uint8_t speed);
+    bool ForwardM2(uint8_t address, uint8_t speed);
+    bool BackwardM2(uint8_t address, uint8_t speed);
+    bool DriveM1(uint8_t address, uint8_t speed);
+    bool DriveM2(uint8_t address, uint8_t speed);
+    bool DriveForward(uint8_t address, uint8_t speed);
+    bool DriveBackward(uint8_t address, uint8_t speed);
+    bool TurnRightMixed(uint8_t address, uint8_t speed);
+    bool TurnLeftMixed(uint8_t address, uint8_t speed);
+    bool TurnLeftOrRight(uint8_t address, uint8_t speed);
+    bool DriveForwardOrBackward(uint8_t address, uint8_t speed);
+    bool Stop();
+    ~RoboClaw();
 
 private:
     std::string port_;
     LibSerial::SerialStream serialStream_;
     uint16_t crc;
 
-    bool write_n(uint8_t cnt, ...) {
-        uint8_t trys = MAXRETRY;
-        do {
-            crc_clear();
-            va_list marker;
-            va_start(marker, cnt);
-
-            for (uint8_t index = 0; index < cnt; index++) {
-                uint8_t data = static_cast<uint8_t>(va_arg(marker, int));
-                crc_update(data);
-                write(data);
-            }
-            va_end(marker);
-
-            uint16_t crcValue = crc_get();
-            write(crcValue >> 8);
-            write(crcValue);
-
-            if (read(TIMEOUT) == 0xFF) {
-                return true;
-            }
-        } while (trys--);
-        return false;
-    }
-
-    void crc_update(uint8_t data) {
-        crc ^= (static_cast<uint16_t>(data) << 8);
-        for (int i = 0; i < 8; i++) {
-            if (crc & 0x8000)
-                crc = (crc << 1) ^ 0x1021;
-            else
-                crc <<= 1;
-        }
-    }
-
-    void crc_clear() {
-        crc = 0;
-    }
-
-    uint16_t crc_get() {
-        return crc;
-    }
-
-    size_t write(uint8_t byte) {
-        serialStream_.write(reinterpret_cast<const char*>(&byte), 1);
-        return 1; // Indicate that 1 byte was written
-    }
-
-    uint8_t read(int timeout_ms) {
-        auto start_time = std::chrono::steady_clock::now();
-        uint8_t byte;
-
-        while (true) {
-            if (serialStream_.read(reinterpret_cast<char*>(&byte), 1)) {
-                return byte; // Return the byte if read successfully
-            }
-
-            // Check for timeout
-            auto elapsed = std::chrono::steady_clock::now() - start_time;
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() >= timeout_ms) {
-                throw TRoboClawException("Read timeout");
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Small delay to prevent busy waiting
-        }
-    }
+    bool write_n(uint8_t cnt, ...);
+    void crc_update(uint8_t data);
+    void crc_clear();
+    uint16_t crc_get();
+    size_t write(uint8_t byte);
+    uint8_t read(int timeout_ms);
 };
 
 #endif // CLAW_API_HPP
