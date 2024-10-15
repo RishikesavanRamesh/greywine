@@ -159,7 +159,7 @@ hardware_interface::CallbackReturn Ros2Claw::on_activate(
 hardware_interface::CallbackReturn Ros2Claw::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  comms_.stop();
+  comms_.disconnect();
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -187,8 +187,8 @@ hardware_interface::return_type Ros2Claw::read(
 
 hardware_interface::return_type Ros2Claw::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
-{
-  comms_.sendCommand(static_cast<uint8_t>(wheel_left_.cmd), static_cast<uint8_t>(wheel_right_.cmd));
+  {
+    comms_.sendCommand(static_cast<uint8_t>(wheel_left_.cmd), static_cast<uint8_t>(wheel_right_.cmd));
 
 
   return hardware_interface::return_type::OK;

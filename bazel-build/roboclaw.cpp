@@ -22,8 +22,13 @@
 #define DRIVEFORWARDORBACKWARD 12
 
 
+#define READ_ENCODER_SPEED_M1 18
+#define READ_ENCODER_SPEED_M2 19 // New command for M2 encoder speed
+#define READ_ENC_M1 20 // New command for M1 encoder reading
+#define READ_ENC_M2 21 // New command for M2 encoder reading
+
 #define MAXRETRY 3
-#define TIMEOUT 1000 // Milliseconds
+#define TIMEOUT 10 // Milliseconds
 
 class RoboClaw {
 public:
@@ -100,9 +105,26 @@ public:
     }
 
 
+    bool ReadEncoderSpeedM1(uint8_t address, int32_t &speed) {
+        return readEncoderSpeed(address, speed, READ_ENCODER_SPEED_M1);
+    }
 
-    bool Stop(){
-        return write_n(3, 0x80, 0x13, 64);
+    bool ReadEncoderSpeedM2(uint8_t address, int32_t &speed) {
+        return readEncoderSpeed(address, speed, READ_ENCODER_SPEED_M2);
+    }
+
+    bool ReadEncM1(uint8_t address, int32_t &encoderValue) {
+        return readEncoderValue(address, encoderValue, READ_ENC_M1);
+    }
+
+    bool ReadEncM2(uint8_t address, int32_t &encoderValue) {
+        return readEncoderValue(address, encoderValue, READ_ENC_M2);
+    }
+
+    void Stop(){
+        TurnRightMixed(0x80,0);
+        // ForwardM1(0x80,0);   
+        // ForwardM2(0x80,0);    
     }
 
     ~RoboClaw() {
@@ -137,6 +159,73 @@ private:
             }
         } while (trys--);
         return false;
+    }
+
+   
+    bool readEncoderSpeed(uint8_t address, int32_t &speed, uint8_t command) {
+        crc_clear();
+        std::cout << "Sending command to read encoder speed..." << std::endl;
+
+        write(address);
+        write(command);
+        
+        uint8_t response[6];
+        for (int i = 0; i < 6; i++) {
+            response[i] = read(TIMEOUT);
+        }
+
+        uint16_t crcValue = crc_get();
+        uint16_t receivedCrc = (static_cast<uint16_t>(response[4]) << 8) | response[5];
+
+        // Always print the response, regardless of CRC match
+        speed = (static_cast<int32_t>(response[0]) << 24) |
+                (static_cast<int32_t>(response[1]) << 16) |
+                (static_cast<int32_t>(response[2]) << 8) |
+                (static_cast<int32_t>(response[3]));
+
+        // Print whether the CRC matches or not
+        if (crcValue == receivedCrc) {
+            std::cout << "CRC matches while reading encoder speed." << std::endl;
+        } else {
+            std::cerr << "Error: CRC mismatch while reading encoder speed." << std::endl;
+        }
+
+        std::cout << "Encoder Speed: " << speed << std::endl;
+
+        return true; // Always return true to indicate that we processed the response
+    }
+
+    bool readEncoderValue(uint8_t address, int32_t &encoderValue, uint8_t command) {
+        crc_clear();
+        std::cout << "Sending command to read encoder value..." << std::endl;
+
+        write(address);
+        write(command);
+        
+        uint8_t response[6];
+        for (int i = 0; i < 6; i++) {
+            response[i] = read(TIMEOUT);
+        }
+
+        uint16_t crcValue = crc_get();
+        uint16_t receivedCrc = (static_cast<uint16_t>(response[4]) << 8) | response[5];
+
+        // Always print the response, regardless of CRC match
+        encoderValue = (static_cast<int32_t>(response[0]) << 24) |
+                       (static_cast<int32_t>(response[1]) << 16) |
+                       (static_cast<int32_t>(response[2]) << 8) |
+                       (static_cast<int32_t>(response[3]));
+
+        // Print whether the CRC matches or not
+        if (crcValue == receivedCrc) {
+            std::cout << "CRC matches while reading encoder value." << std::endl;
+        } else {
+            std::cerr << "Error: CRC mismatch while reading encoder value." << std::endl;
+        }
+
+        std::cout << "Encoder Value: " << encoderValue << std::endl;
+
+        return true; // Always return true to indicate that we processed the response
     }
 
     void crc_update(uint8_t data) {
@@ -182,98 +271,38 @@ private:
     }
 };
 int main() {
-    RoboClaw roboClaw("/dev/ttyACM0");
-
     try {
+        RoboClaw roboClaw("/dev/ttyACM0"); // Change this to your actual device name
         roboClaw.openPort();
-        std::cout << "Port opened successfully!" << std::endl;
 
+        const uint8_t address = 0x80; // Replace with your actual address
+        const uint8_t speed = 20; // Adjust the speed as necessary
 
-        // Activate mixed mode
-        if (roboClaw.DriveForward(0x80, 0)) {
-            std::cout << "Mixed mode setdrive successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to set mixed mode!" << std::endl;
+        for (int i = 0; i < 1; ++i) {
+            roboClaw.TurnRightMixed(address, speed);
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+
+            roboClaw.TurnLeftMixed(address, speed);
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+
+            int32_t encoderSpeed;
+            if (roboClaw.ReadEncoderSpeedM1(address, encoderSpeed)) {
+                std::cout << "M1 Encoder Speed: " << encoderSpeed << " pulses per second." << std::endl;
+            } else {
+                std::cerr << "Failed to read M1 encoder speed." << std::endl;
+            }
+            if (roboClaw.ReadEncoderSpeedM2(address, encoderSpeed)) {
+                std::cout << "M2 Encoder Speed: " << encoderSpeed << " pulses per second." << std::endl;
+            } else {
+                std::cerr << "Failed to read M1 encoder speed." << std::endl;
+            }
         }
 
-        // Activate mixed mode
-        if (roboClaw.TurnRightMixed(0x80, 0)) {
-            std::cout << "Mixed mode setturn successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to setturn mixed mode!" << std::endl;
-        }
-
-
-        // Turn left
-        if (roboClaw.TurnLeftMixed(0x80, 30)) {
-            std::cout << "turning left mixed..." << std::endl;
-        } else {
-            std::cerr << "Failed to send drive command!" << std::endl;
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for 2 seconds
-
-        // Turn left
-        if (roboClaw.TurnRightMixed(0x80, 30)) {
-            std::cout << "turning right Mixed ..." << std::endl;
-        } else {
-            std::cerr << "Failed to send drive command!" << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for 2 seconds
-        
-
-        // Activate mixed mode
-        if (roboClaw.TurnRightMixed(0x80, 0)) {
-            std::cout << "Mixed mode setturn successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to setturn mixed mode!" << std::endl;
-        }
-
-
-        if (roboClaw.DriveForward(0x80, 30)) {
-            std::cout << "Driving M1 ..." << std::endl;
-        } else {
-            std::cerr << "Failed to send drive command!" << std::endl;
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for 2 seconds
-
-
-        // Activate mixed mode
-        if (roboClaw.TurnRightMixed(0x80, 0)) {
-            std::cout << "Mixed mode setturn successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to setturn mixed mode!" << std::endl;
-        }
-
-
-        // Turn left
-        if (roboClaw.DriveBackward(0x80, 30)) {
-            std::cout << "Driving M1 ..." << std::endl;
-        } else {
-            std::cerr << "Failed to send drive command!" << std::endl;
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for 2 seconds
-
-        // Activate mixed mode
-        if (roboClaw.DriveForward(0x80, 0)) {
-            std::cout << "Mixed mode setdrive successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to set mixed mode!" << std::endl;
-        }
-
-        // Activate mixed mode
-        if (roboClaw.TurnRightMixed(0x80, 0)) {
-            std::cout << "Mixed mode setturn successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to setturn mixed mode!" << std::endl;
-        }
-
+        roboClaw.Stop();
+        roboClaw.closePort();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-        return 1; // Failure
     }
 
-    return 0; // Success
+    return 0;
 }

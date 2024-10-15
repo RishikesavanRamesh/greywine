@@ -25,53 +25,53 @@ bool RoboClaw::isPortOpen() {
 }
 
 bool RoboClaw::ForwardM1(uint8_t address, uint8_t speed) {
-    return write_n(3, address, M1FORWARD, speed);
+    return write_n(3, address, CLAW_API_M1FORWARD, speed);
 }
 
 bool RoboClaw::BackwardM1(uint8_t address, uint8_t speed) {
-    return write_n(3, address, M1BACKWARD, speed);
+    return write_n(3, address, CLAW_API_M1BACKWARD, speed);
 }
 
 bool RoboClaw::ForwardM2(uint8_t address, uint8_t speed) {
-    return write_n(3, address, M2FORWARD, speed);
+    return write_n(3, address, CLAW_API_M2FORWARD, speed);
 }
 
 bool RoboClaw::BackwardM2(uint8_t address, uint8_t speed) {
-    return write_n(3, address, M2BACKWARD, speed);
+    return write_n(3, address, CLAW_API_M2BACKWARD, speed);
 }
 
 bool RoboClaw::DriveM1(uint8_t address, uint8_t speed) {
-    return write_n(3, address, DRIVEM1, speed);
+    return write_n(3, address, CLAW_API_DRIVEM1, speed);
 }
 
 bool RoboClaw::DriveM2(uint8_t address, uint8_t speed) {
-    return write_n(3, address, DRIVEM2, speed);
+    return write_n(3, address, CLAW_API_DRIVEM2, speed);
 }
 
 bool RoboClaw::DriveForward(uint8_t address, uint8_t speed) {
-    return write_n(3, address, DRIVEFORWARD, speed);
+    return write_n(3, address, CLAW_API_DRIVEFORWARD, speed);
 }
 
 bool RoboClaw::DriveBackward(uint8_t address, uint8_t speed) {
-    return write_n(3, address, DRIVEBACKWARD, speed);
+    return write_n(3, address, CLAW_API_DRIVEBACKWARD, speed);
 }
 
 bool RoboClaw::TurnRightMixed(uint8_t address, uint8_t speed) {
-    return write_n(3, address, TURNRIGHT, speed);
+    return write_n(3, address, CLAW_API_TURNRIGHT, speed);
 }
 
 bool RoboClaw::TurnLeftMixed(uint8_t address, uint8_t speed) {
-    return write_n(3, address, TURNLEFT, speed);
+    return write_n(3, address, CLAW_API_TURNLEFT, speed);
 }
 
 bool RoboClaw::TurnLeftOrRight(uint8_t address, uint8_t speed) {
     if (speed > 127) speed = 127; 
-    return write_n(3, address, TURNLEFTORRIGHT, speed);
+    return write_n(3, address, CLAW_API_TURNLEFTORRIGHT, speed);
 }
 
 bool RoboClaw::DriveForwardOrBackward(uint8_t address, uint8_t speed) {
     if (speed > 127) speed = 127; 
-    return write_n(3, address, DRIVEFORWARDORBACKWARD, speed);
+    return write_n(3, address, CLAW_API_DRIVEFORWARDORBACKWARD, speed);
 }
 
 bool RoboClaw::Stop() {
@@ -83,7 +83,7 @@ RoboClaw::~RoboClaw() {
 }
 
 bool RoboClaw::write_n(uint8_t cnt, ...) {
-    uint8_t trys = MAXRETRY;
+    uint8_t trys = CLAW_API_MAXRETRY;
     do {
         crc_clear();
         va_list marker;
@@ -100,7 +100,7 @@ bool RoboClaw::write_n(uint8_t cnt, ...) {
         write(crcValue >> 8);
         write(crcValue);
 
-        if (read(TIMEOUT) == 0xFF) {
+        if (read(CLAW_API_TIMEOUT) == 0xFF) {
             return true;
         }
     } while (trys--);

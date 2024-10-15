@@ -9,21 +9,20 @@
 #include <thread>
 #include <chrono>
 
-#define M1FORWARD 0
-#define M1BACKWARD 1
-#define M2FORWARD 4
-#define M2BACKWARD 5
-#define DRIVEM1 6
-#define DRIVEM2 7
-#define DRIVEFORWARD 8
-#define DRIVEBACKWARD 9
-#define TURNRIGHT 10
-#define TURNLEFT 11
-#define DRIVEFORWARDORBACKWARD 12
-#define TURNLEFTORRIGHT 13
-
-#define MAXRETRY 3
-#define TIMEOUT 10 // Milliseconds
+#define CLAW_API_M1FORWARD 0
+#define CLAW_API_M1BACKWARD 1
+#define CLAW_API_M2FORWARD 4
+#define CLAW_API_M2BACKWARD 5
+#define CLAW_API_DRIVEM1 6
+#define CLAW_API_DRIVEM2 7
+#define CLAW_API_DRIVEFORWARD 8
+#define CLAW_API_DRIVEBACKWARD 9
+#define CLAW_API_TURNRIGHT 10
+#define CLAW_API_TURNLEFT 11
+#define CLAW_API_DRIVEFORWARDORBACKWARD 12
+#define CLAW_API_TURNLEFTORRIGHT 13
+#define CLAW_API_MAXRETRY 3
+#define CLAW_API_TIMEOUT 10 // Milliseconds
 
 class RoboClaw {
 public:
